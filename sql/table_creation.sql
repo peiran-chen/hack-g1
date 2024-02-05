@@ -1,4 +1,4 @@
-use database hachathon;
+use database hackathon;
 use schema group_1;
 
 
@@ -77,4 +77,22 @@ create table ref_commencing_study_period (
     commencing_study_period varchar(100)
 );
 
+create table if not exists rule_annual_increase (
+    id number(38) identity,
+    default_annual_increase float
+)
+;
+
+create table if not exists rule (
+    id number(38) identity,
+    rule_name varchar(100),
+    description varchar(4000),
+    extra_comment varchar(4000),
+    rule_content varchar,
+    rule_owner varchar(100),
+    created_by varchar(100),
+    created_at timestamp(6),
+    updated_by varchar(100),
+    updated_at timestamp(6)
+);
 

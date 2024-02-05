@@ -10,6 +10,17 @@ create role if not exists g1_faculty_arts;
 create role if not exists g1_faculty_mqbs;
 create role if not exists g1_faculty_fmhhs;
 
+create role if not exists g1_role;
+
+grant role g1_role to role g1_admin;
+grant role g1_role to role g1_recruitment_international;
+grant role g1_role to role g1_recruitment_domestic;
+grant role g1_role to role g1_faculty_sci;
+grant role g1_role to role g1_faculty_arts;
+grant role g1_role to role g1_faculty_mqbs;
+grant role g1_role to role g1_faculty_fmhhs;
+
+
 -- warehouse for team 1
 create warehouse if not exists g1_wh;
 
