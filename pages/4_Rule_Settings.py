@@ -216,6 +216,7 @@ if 'rule_option' in st.session_state:
                 'rule_name': rule_name,
                 'increase_by': float(input_increase_by),
                 'periods': period_name_json,
+                'commencing_study_periods': commencing_study_period_json,
                 'owning_faculties': owning_faculty_json,
                 'fee_liability_groups': fee_liability_json,
                 'course_level_names': course_level_json,
@@ -241,10 +242,10 @@ if 'rule_option' in st.session_state:
             submit = st.button("Create New Rule")
             if submit:
                 try:
-                    session.sql(f"""insert into rule (rule_name, description, extra_comment, rule_content)
+                    session.sql(f"""insert into rule (rule_name, description, extra_comment, rule_content, rule_owner)
                     values
                     ('{rule_name}-{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}', '{description}', '{extra_comment}', 
-                    '{json.dumps(rule_dict).replace("'", "''")}' )
+                    '{json.dumps(rule_dict).replace("'", "''")}', '{current_role}' )
                     """).collect()
                     st.success(f"""New Rule **{rule_name}-{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}** is saved""")
                     # TODO reset values in the form
