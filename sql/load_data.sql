@@ -101,9 +101,9 @@ with base as (
         fee_liability_group
 )
 select '2024.03' as actual_name,
-    '2024' period_name,
+    '2024' period,
     commencing_study_period,
-    course_name,
+    course_name as course,
     owning_faculty,
     course_level_name,
     fee_liability_group,
