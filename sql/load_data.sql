@@ -76,6 +76,94 @@ from stage_data_source
 where scenario_type in ('2024 Load Plan 1.0', '2024 Load Plan 2.0');
 
 -- load 2024 actuals
+-- 2024.march actuals
+-- apply random float between 0.8 to 1.2 on the course enrolments from '2024 Load Plan 2.0', 2024.Session_1
+create or replace table commence_actual as
+with base as (
+    select scenario_type,
+        period_name,
+        course_name,
+        owning_faculty,
+        commencing_study_period,
+        course_level_name,
+        fee_liability_group,
+        sum(course_enrolment_count) as course_enrolment_count
+    from draft_lp_ce_estimates_2024
+    where scenario_type in ('2024 Load Plan 2.0')
+        and period_name in ('2024')
+        and commencing_study_period in ('Session 1')
+    group by scenario_type,
+        period_name,
+        course_name,
+        owning_faculty,
+        commencing_study_period,
+        course_level_name,
+        fee_liability_group
+)
+select '2024.03' as actual_name,
+    '2024' period_name,
+    commencing_study_period,
+    course_name,
+    owning_faculty,
+    course_level_name,
+    fee_liability_group,
+    ceil(uniform(0.8::float, 1.2::float, random(4321))*course_enrolment_count) as course_enrolment_count
+from base
+;
 
+-- apply random float between 0.8 to 1.2 on the course enrolments from '2024 Load Plan 2.0', 2024.Session_2
+insert into commence_actual
+with session_1 as (
+    select '2024.07' as actual_name,
+        '2024' as period_name,
+        commencing_study_period,
+        course_name,
+        owning_faculty,
+        course_level_name,
+        fee_liability_group,
+        course_enrolment_count
+    from commence_actual
+),
+session_2 as (
 
+    with base as (
+        select scenario_type,
+            period_name,
+            course_name,
+            owning_faculty,
+            commencing_study_period,
+            course_level_name,
+            fee_liability_group,
+            sum(course_enrolment_count) as course_enrolment_count
+        from draft_lp_ce_estimates_2024
+        where scenario_type in ('2024 Load Plan 2.0')
+            and period_name in ('2024')
+            and commencing_study_period in ('Session 2')
+        group by scenario_type,
+        period_name,
+        course_name,
+        owning_faculty,
+        commencing_study_period,
+        course_level_name,
+        fee_liability_group
+    )
+    select '2024.07' as actual_name,
+        '2024' period_name,
+        commencing_study_period,
+        course_name,
+        owning_faculty,
+        course_level_name,
+        fee_liability_group,
+        ceil(uniform(0.8::float, 1.2::float, random(4321))*course_enrolment_count) as course_enrolment_count
+    from base
+
+),
+session_union as (
+    select * from session_1
+    union all
+    select * from session_2
+)
+
+select * from session_union
+;
 
