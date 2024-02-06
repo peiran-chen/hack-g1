@@ -1,7 +1,6 @@
 use database hackathon;
 use schema group_1;
 
-
 create table scenario if not exists (
     id number(38) identity,
     scenario_name varchar(100),
@@ -18,7 +17,9 @@ create table scenario if not exists (
     updated_at timestamp(6)
 );
 
+comment on table scenario is 'Estimate Scenario. composite business key scenario_name, version_name';
 
+-- to save comments for better collabration
 create table scenario_notes if not exists (
     id number(38) identity,
     scenario_id number(38),
@@ -26,6 +27,8 @@ create table scenario_notes if not exists (
     created_by varchar(100),
     created_at timestamp(6)
 );
+
+comment on table scenario_notes is 'Notes and Comments associated with Scenario for better collabration'
 
 create table scenario_data if not exists (
     id number(38) identity,
