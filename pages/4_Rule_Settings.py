@@ -22,16 +22,6 @@ else:
 
 current_role = session.get_current_role().replace('"', '')
 
-
-st.sidebar.markdown("""
-    <style>
-    [data-testid='stSidebarNav'] > ul {
-        min-height: 40vh;
-    } 
-    </style>
-    """, unsafe_allow_html=True)
-
-
 with st.sidebar:
     rule_option = st.radio('## Options', options=[
         'Default Settings',
