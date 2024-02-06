@@ -36,7 +36,7 @@ create table scenario_data if not exists (
     course varchar(100),
     period varchar(100),
     commencing_study_period varchar(100),
-    owning_faculty_name varchar(100),
+    owning_faculty_name varchar(200),
     course_level_name varchar(100),
     fee_liability_group varchar(100),
     course_enrolment_count number(38)

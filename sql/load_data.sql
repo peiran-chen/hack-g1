@@ -167,3 +167,31 @@ session_union as (
 select * from session_union
 ;
 
+insert into scenario_data (
+    scenario_id,
+    course,
+    period,
+    commencing_study_period,
+    owning_faculty_name,
+    course_level_name,
+    fee_liability_group,
+    course_enrolment_count
+)
+select scenario.id as scenario_id,
+    ds.course_name ,
+    ds.period_name,
+    ds.commencing_study_period,
+    ds.owning_faculty,
+    ds.course_level_name,
+    ds.fee_liability_group,
+    ds.course_enrolment_count
+from stage_data_source as ds
+inner join scenario on scenario.scenario_name=ds.scenario_type
+inner join ref_course on ref_course.course_name=ds.course_name
+inner join ref_period on ref_period.period_name=ds.period_name
+inner join ref_owning_faculty on ref_owning_faculty.faculty_name=ds.owning_faculty
+inner join ref_course_level on ref_course_level.course_level_name=ds.course_level_name
+inner join ref_fee_liability_group on ref_fee_liability_group.fee_liability_group=ds.fee_liability_group
+where 1=1
+;
+

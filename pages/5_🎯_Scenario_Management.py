@@ -110,12 +110,12 @@ elif st.session_state.scenario_actual_option == 'Scenario Management':
         actual_df = session.table('commence_actual')
 
         # load scenarios
-        scenario_data_df = session.table('scenario').select(
-            ['SCENARIO_NAME', 'VERSION_NAME', 'NOTES', 'IS_FINAL', 'CONFIRMED_BY_ARTS',
+        scenario_df = session.table('scenario').select(
+            ['ID', 'SCENARIO_NAME', 'VERSION_NAME', 'NOTES', 'IS_FINAL', 'CONFIRMED_BY_ARTS',
              'CONFIRMED_BY_MQBS', 'CONFIRMED_BY_SCI', 'CONFIRMED_BY_FMHHS']
         ).with_column('SCENARIO', sql_expr("SCENARIO_NAME || ' (' || VERSION_NAME || ')'"))
 
-        scenario_distinct_list = [x.SCENARIO for x in scenario_data_df.select('SCENARIO').distinct().collect()]
+        scenario_distinct_list = [x.SCENARIO for x in scenario_df.select('SCENARIO').distinct().collect()]
         create_scenario_select = st.selectbox(
             '## Choose **Create Scenario** or existing ones',
             ['Create Scenario', *scenario_distinct_list],
@@ -157,8 +157,10 @@ elif st.session_state.scenario_actual_option == 'Scenario Management':
                 with col2:
                     st.selectbox(
                         '## Choose Base Scenario Name',
-                        scenario_data_df.select('SCENARIO').distinct().order_by('SCENARIO')
+                        scenario_df.select('SCENARIO').distinct().order_by('SCENARIO'),
+                        key='cs_estimate_scenario_select'
                     )
+
                 submit = st.button(
                     '## Generate Scenario'
                 )
@@ -177,6 +179,51 @@ elif st.session_state.scenario_actual_option == 'Scenario Management':
                             where scenario_name='{st.session_state.cs_scenario_name_input}' 
                             and version_name='init'
                             """
+
+                        # estimate current year based on March Round (Session 1)
+                        # march (session 1) actual
+                        march_actual_df = session.table('commence_actual').filter(
+                            col('ACTUAL_NAME') == st.session_state.cs_actual_name_select
+                        ).select(sum(col('COURSE_ENROLMENT_COUNT')).alias('COURSE_ENROLMENT_COUNT'))
+                        s1_actual = march_actual_df.to_pandas().iloc[0]['COURSE_ENROLMENT_COUNT']
+
+                        st.write(st.session_state.cs_estimate_scenario_select)
+
+                        scenario_data_df = session.table('SCENARIO_DATA')
+
+                        scenario_id = scenario_df.filter(
+                            col('SCENARIO') == st.session_state.cs_estimate_scenario_select
+                        ).select('ID').to_pandas().iloc[0]['ID']
+
+                        # st.write(scenario_id)
+
+                        scenario_data_df_filter = session.table('SCENARIO_DATA').filter(
+                            (col('SCENARIO_ID') == int(scenario_id)) & (col('COMMENCING_STUDY_PERIOD') == 'Session 1') & (col('PERIOD') == '2024')
+                        )
+                        s1_estimate = scenario_data_df_filter.select(
+                            sum('COURSE_ENROLMENT_COUNT').alias('COURSE_ENROLMENT_COUNT')
+                        ).select('COURSE_ENROLMENT_COUNT').to_pandas().iloc[0]['COURSE_ENROLMENT_COUNT']
+                        increase_by = (s1_actual - s1_estimate) / s1_estimate
+                        st.write(increase_by)
+
+                        not_s1_estimate_df = session.table('SCENARIO_DATA').filter(
+                            (col('SCENARIO_ID') == int(scenario_id)) & (col('COMMENCING_STUDY_PERIOD') != 'Session 1') & (col('PERIOD') == '2024')
+                        )
+                        not_s1_estimate_df_pd = not_s1_estimate_df.to_pandas()
+                        not_s1_estimate_df_pd['COURSE_ENROLMENT_COUNT'].astype(float)
+                        not_s1_estimate_df_pd['COURSE_ENROLMENT_COUNT_NEW'] = not_s1_estimate_df_pd['COURSE_ENROLMENT_COUNT'] * increase_by# * float(increase_by)
+                        st.write(not_s1_estimate_df_pd)
+                        # scenario_data_df_filter_1 = scenario_data_df_filter.join(scenario_data_df, scenario_data_df.SCENARIO_ID == scenario_data_df.ID))
+                        #
+                        # st.write(scenario_data_df_filter)
+                        #
+                        # # march (session 1) estimate
+                        # march_estimate = session.table('')
+
+
+
+
+                        # estimate future years 2025 - 2028 by applying estimation rules
 
                         st.success(f'Scenario **{st.session_state.cs_scenario_name_input}** is saved in Snowflake')
                     except Exception as e:
