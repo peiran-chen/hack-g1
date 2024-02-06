@@ -45,14 +45,6 @@ else:
 
 current_role = session.get_current_role().replace('"', '')
 
-st.sidebar.markdown("""
-    <style>
-    [data-testid='stSidebarNav'] > ul {
-        min-height: 40vh;
-    } 
-    </style>
-    """, unsafe_allow_html=True)
-
 st.sidebar.warning(f"Login Role **{current_role}**")
 
 st.session_state['current_role'] = current_role

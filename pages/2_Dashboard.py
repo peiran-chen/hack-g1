@@ -62,14 +62,6 @@ ce_df["COURSE_ENROLMENT_COUNT"] = ce_df["COURSE_ENROLMENT_COUNT"].fillna(0).asty
 
 filtered_df = ce_df.copy()
 
-st.sidebar.markdown("""
-    <style>
-    [data-testid='stSidebarNav'] > ul {
-        min-height: 40vh;
-    } 
-    </style>
-    """, unsafe_allow_html=True)
-
 with st.sidebar:
     # course filter on sidebar
     course_df = pd.DataFrame(sorted(ce_df["COURSE_NAME"].unique()), columns=['COURSE_NAME'])

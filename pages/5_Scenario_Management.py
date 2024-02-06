@@ -23,14 +23,6 @@ else:
 
 current_role = session.get_current_role().replace('"', '')
 
-st.sidebar.markdown("""
-    <style>
-    [data-testid='stSidebarNav'] > ul {
-        min-height: 40vh;
-    } 
-    </style>
-    """, unsafe_allow_html=True)
-
 st.title(':dart: Scenario Management')
 
 with st.sidebar:
