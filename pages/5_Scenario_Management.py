@@ -10,6 +10,9 @@ import numpy as np
 import pandas as pd
 import altair as alt
 import warnings
+from helpers.utils import Utils
+
+from models.Scenario import Scenario
 
 
 @st.cache_resource
@@ -722,7 +725,51 @@ elif st.session_state.scenario_actual_option == 'Scenario Management':
 
 
 elif st.session_state.scenario_actual_option == 'Faculty Approval':
+
+    
     st.header('Faculty Approval')
 
+    Utils.get_session()
+    scenarios = session.sql("select SCENARIO_NAME||' - '||VERSION_NAME as options from scenario").to_pandas()
+    
+    scenario_text = st.selectbox(
+        "Scenario",
+        scenarios['OPTIONS'].tolist()
+    )
+    scenario = Scenario.find_by_ui_value(scenario_text)
 
+    role = Utils.get_session_role()
+    st.write(role)
+    match role:
+        case 'G1_FACULTY_ARTS':
+            approve_arts = st.checkbox('Arts', disabled=True, value=(True if scenario.confirmed_by_arts=='Y' else False))
+        case 'G1_FACULTY_MQBS':
+            approve_mqbs = st.checkbox('MQBS', value=True if scenario.confirmed_by_mqbs=='Y' else False)
+        case 'G1_FACULTY_SCI':
+            approve_sci = st.checkbox('Science', disabled=True, value=(True if scenario.confirmed_by_sci=='Y' else False))
+        case 'G1_FACULTY_FMHHS':
+            approve_fmhhs = st.checkbox('FMHHS', disabled=True, value=(True if scenario.confirmed_by_fmhhs=='Y' else False))
+        case 'ACCOUNTADMIN' | 'G1_ADMIN':
+            approve_arts = st.checkbox('Arts', disabled=True, value=(True if scenario.confirmed_by_arts=='Y' else False))
+            approve_mqbs = st.checkbox('MQBS', disabled=True, value=(True if scenario.confirmed_by_mqbs=='Y' else False))
+            approve_sci = st.checkbox('Science', disabled=True, value=(True if scenario.confirmed_by_sci=='Y' else False))
+            approve_fmhhs = st.checkbox('FMHHS', disabled=True, value=(True if scenario.confirmed_by_fmhhs=='Y' else False))
+            approve_admin = st.checkbox('Admin', disabled=True, value=(True if scenario.is_final=='Y' else False))
+        case _:
+            raise f"No role match: {role}"
+    
+    comment = st.text_area('Comment', value=scenario.notes, disabled=scenario.has_role_approved())
 
+    if (st.button('Comment', disabled=scenario.has_role_approved())):
+        scenario = Scenario.find(scenario.id)
+        scenario.notes = comment
+        scenario.save()
+        st.experimental_rerun()
+
+    if (st.button(
+            'Comment + Approve',
+            disabled=scenario.has_role_approved()
+        )):
+        scenario = Scenario.find(scenario.id)
+        scenario.approve()
+        st.experimental_rerun()
