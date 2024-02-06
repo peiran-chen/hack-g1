@@ -353,10 +353,110 @@ elif st.session_state.scenario_actual_option == 'Scenario Management':
             ]
             st.write(f'**Notes**: {cs_pd_filter["NOTES"].iloc[0]}')
     elif st.session_state.scenario_radio == 'Compare Scenarios':
-        # TODO
         # choose multiple scenario to compare
-        st.info('todo choose multiple scenario to compare')
+        scenario_df = session.sql(
+            """select s.SCENARIO_NAME || ' (' || s.VERSION_NAME || ')' as scenario,
+                    sd.course,
+                    sd.period,
+                    sd.commencing_study_period,
+                    sd.owning_faculty,
+                    sd.course_level_name,
+                    sd.fee_liability_group,
+                    sd.course_enrolment_count
+                from scenario_data as sd
+                inner join scenario as s
+                    on sd.scenario_id=s.id"""
+        ).to_pandas()
 
+        compare_scenario_select = st.multiselect(
+            '## Choose Scenarios to compare',
+            options=sorted(scenario_df['SCENARIO'].unique()),
+            key='compare_scenario_select'
+        )
+
+        col1, col2 = st.columns(2)
+        with col1:
+            compare_period_select = st.multiselect(
+                '## Choose Period to compare',
+                options=sorted(scenario_df['PERIOD'].unique()),
+                key='compare_period_select'
+            )
+            compare_commencing_study_period_select = st.multiselect(
+                '## Choose Commencing Study Period to compare',
+                options=sorted(scenario_df['COMMENCING_STUDY_PERIOD'].unique()),
+                key='compare_commencing_study_period_select'
+            )
+            compare_owning_faculty_select = st.multiselect(
+                '## Choose Owning Faculty to compare',
+                options=sorted(scenario_df['OWNING_FACULTY'].unique()),
+                key='compare_owning_faculty_select'
+            )
+        with col2:
+            compare_fee_liability_group_select = st.multiselect(
+                '## Choose Fee Liability Group to compare',
+                options=sorted(scenario_df['FEE_LIABILITY_GROUP'].unique()),
+                key='compare_fee_liability_group_select'
+            )
+            compare_course_level_select = st.multiselect(
+                '## Choose Course Level to compare',
+                options=sorted(scenario_df['COURSE_LEVEL_NAME'].unique()),
+                key='compare_course_level_select'
+            )
+            compare_course_select = st.multiselect(
+                '## Choose Courses to compare',
+                options=sorted(scenario_df['COURSE'].unique()),
+                key='compare_course_select'
+            )
+
+        scenario_df_filter = scenario_df.copy()
+        if st.session_state.compare_scenario_select:
+            scenario_df_filter = scenario_df_filter[scenario_df_filter['SCENARIO'].isin(st.session_state.compare_scenario_select)]
+        else:
+            scenario_df_filter = scenario_df_filter
+        if st.session_state.compare_period_select:
+            scenario_df_filter = scenario_df_filter[scenario_df_filter['PERIOD'].isin(st.session_state.compare_period_select)]
+        else:
+            scenario_df_filter = scenario_df_filter
+        if st.session_state.compare_commencing_study_period_select:
+            scenario_df_filter = scenario_df_filter[scenario_df_filter['COMMENCING_STUDY_PERIOD'].isin(st.session_state.compare_commencing_study_period_select)]
+        else:
+            scenario_df_filter = scenario_df_filter
+        if st.session_state.compare_owning_faculty_select:
+            scenario_df_filter = scenario_df_filter[scenario_df_filter['OWNING_FACULTY'].isin(st.session_state.compare_commencing_study_period_select)]
+        else:
+            scenario_df_filter = scenario_df_filter
+        if st.session_state.compare_fee_liability_group_select:
+            scenario_df_filter = scenario_df_filter[scenario_df_filter['FEE_LIABILITY_GROUP'].isin(st.session_state.compare_fee_liability_group_select)]
+        else:
+            scenario_df_filter = scenario_df_filter
+        if st.session_state.compare_course_level_select:
+            scenario_df_filter = scenario_df_filter[scenario_df_filter['COURSE_LEVEL_NAME'].isin(st.session_state.compare_course_level_select)]
+        else:
+            scenario_df_filter = scenario_df_filter
+        if st.session_state.compare_course_select:
+            scenario_df_filter = scenario_df_filter[scenario_df_filter['COURSE'].isin(st.session_state.compare_course_select)]
+        else:
+            scenario_df_filter = scenario_df_filter
+
+        scenario_df_sum = scenario_df_filter.groupby(
+            ["SCENARIO", "PERIOD"])["COURSE_ENROLMENT_COUNT"].sum().reset_index()
+
+        scale_range = [0, 100]
+        if not scenario_df_sum.empty:
+            scale_range = [scenario_df_sum["COURSE_ENROLMENT_COUNT"].min() * 0.9,
+                           scenario_df_sum["COURSE_ENROLMENT_COUNT"].max() * 1.1]
+        line_chart = alt.Chart(scenario_df_sum).mark_line(
+            point=alt.OverlayMarkDef(filled=False, fill="white", tooltip=True)).encode(
+            x=alt.X('PERIOD:N', title="Period", scale=alt.Scale(), axis=alt.Axis(labelAngle=-45)),
+            y=alt.Y(
+                'COURSE_ENROLMENT_COUNT:Q',
+                title="Course Enrolment Count",
+                scale=alt.Scale(domain=scale_range)
+            ),
+            color='SCENARIO:N'
+        )
+
+        st.altair_chart(line_chart, use_container_width=True)
 
 elif st.session_state.scenario_actual_option == 'Faculty Approval':
     st.header('Faculty Approval')
