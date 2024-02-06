@@ -99,3 +99,5 @@ create table if not exists rule (
     updated_at timestamp(6)
 );
 
+comment on column rule.rule_content is 'json content to combine lists of owning faculty, fee liability group, course level, period, commencing study period and courses';
+
