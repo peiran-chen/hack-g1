@@ -275,7 +275,9 @@ elif st.session_state.scenario_actual_option == 'Scenario Management':
                         march_actual_df_pd = march_actual_df_pd[['SCENARIO_ID', 'COURSE', 'PERIOD', 'COMMENCING_STUDY_PERIOD', 'OWNING_FACULTY', 'COURSE_LEVEL_NAME', 'FEE_LIABILITY_GROUP', 'COURSE_ENROLMENT_COUNT']]
                         estimate_2024_pd = pd.concat([march_actual_df_pd, not_s1_estimate_df_pd], sort=False)
 
+                        estimate_2024_pd['INCREASE_BY'] = float(st.session_state.default_increase_input)
                         df = estimate_2024_pd.copy()
+
                         estimate_all_pd = estimate_2024_pd
                         for year in ['2025', '2026', '2027', '2028']:
                             df['PERIOD'] = year
@@ -294,11 +296,15 @@ elif st.session_state.scenario_actual_option == 'Scenario Management':
                                     df, rule_pd,
                                     how="left",
                                     on=['COURSE', 'PERIOD', 'COMMENCING_STUDY_PERIOD', 'OWNING_FACULTY', 'COURSE_LEVEL_NAME', 'FEE_LIABILITY_GROUP'],
+                                    suffixes=('_OLD', '')
                                 )
-                                df['INCREASE_BY'].fillna(float(st.session_state.default_increase_input), inplace=True)
-                                df['COURSE_ENROLMENT_COUNT'] = np.ceil(df['COURSE_ENROLMENT_COUNT'] * (1 + df['INCREASE_BY']))
-                                df.drop(columns=['INCREASE_BY'], inplace=True)
+                                st.write(df)
+                                df['INCREASE_BY'].fillna(df['INCREASE_BY_OLD'], inplace=True)
 
+                                df.drop(columns=['INCREASE_BY_OLD'], inplace=True)
+
+                            df['COURSE_ENROLMENT_COUNT'] = np.ceil(
+                                df['COURSE_ENROLMENT_COUNT'] * (1 + df['INCREASE_BY']))
                             estimate_all_pd = pd.concat([estimate_all_pd, df], sort=False)
                         # st.dataframe(estimate_all_pd)
                         # st.write(estimate_all_pd.shape)
@@ -422,7 +428,7 @@ elif st.session_state.scenario_actual_option == 'Scenario Management':
         else:
             scenario_df_filter = scenario_df_filter
         if st.session_state.compare_owning_faculty_select:
-            scenario_df_filter = scenario_df_filter[scenario_df_filter['OWNING_FACULTY'].isin(st.session_state.compare_commencing_study_period_select)]
+            scenario_df_filter = scenario_df_filter[scenario_df_filter['OWNING_FACULTY'].isin(st.session_state.compare_owning_faculty_select)]
         else:
             scenario_df_filter = scenario_df_filter
         if st.session_state.compare_fee_liability_group_select:
@@ -457,6 +463,31 @@ elif st.session_state.scenario_actual_option == 'Scenario Management':
         )
 
         st.altair_chart(line_chart, use_container_width=True)
+
+        st.download_button(
+            f"Download Select Data",
+            data=scenario_df_filter.to_csv(index=False).encode('utf-8'),
+            file_name=f'scenario_data.csv',
+            mime='text/csv',
+            help='Click here to download the selected data as a CSV file'
+        )
+
+        st.subheader(st.session_state.compare_scenario_select[0])
+        st.write(scenario_df_filter[scenario_df_filter['SCENARIO'] == st.session_state.compare_scenario_select[0]])
+
+        st.subheader(st.session_state.compare_scenario_select[1])
+        st.write(scenario_df_filter[scenario_df_filter['SCENARIO'] == st.session_state.compare_scenario_select[1]])
+
+        df_1 = scenario_df_filter[scenario_df_filter['SCENARIO'] == st.session_state.compare_scenario_select[0]]
+        df_2 = scenario_df_filter[scenario_df_filter['SCENARIO'] == st.session_state.compare_scenario_select[1]]
+        merged_df = pd.merge(
+            df_1,
+            df_2,
+            on=['COURSE', 'PERIOD', 'COMMENCING_STUDY_PERIOD', 'OWNING_FACULTY', 'COURSE_LEVEL_NAME', 'FEE_LIABILITY_GROUP'],
+            suffixes=(' '+st.session_state.compare_scenario_select[0], ' '+st.session_state.compare_scenario_select[1])
+        ).drop(columns=[f'SCENARIO {st.session_state.compare_scenario_select[0]}', f'SCENARIO {st.session_state.compare_scenario_select[1]}'])
+        st.write(merged_df)
+
 
 elif st.session_state.scenario_actual_option == 'Faculty Approval':
     st.header('Faculty Approval')
