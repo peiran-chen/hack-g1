@@ -85,13 +85,13 @@ if st.session_state.scenario_actual_option == 'Actuals':
     ).sum("COURSE_ENROLMENT_COUNT").sort(['OWNING_FACULTY', 'COURSE'])
     with st.expander('Expand to check data'):
         st.dataframe(actual_df_format)
-    st.download_button(
-        f"Download {actual_name_select}.csv",
-        data=actual_df.to_pandas().to_csv(index = False).encode('utf-8'),
-        file_name=f'{actual_name_select}.csv',
-        mime='text/csv',
-        help='Click here to download the data as a CSV file'
-    )
+    # st.download_button(
+    #     f"Download {actual_name_select}.csv",
+    #     data=actual_df.to_pandas().to_csv(index = False).encode('utf-8'),
+    #     file_name=f'{actual_name_select}.csv',
+    #     mime='text/csv',
+    #     help='Click here to download the data as a CSV file'
+    # )
 
 elif st.session_state.scenario_actual_option == 'Scenario Management':
     st.header('Scenario Management')
@@ -704,13 +704,13 @@ elif st.session_state.scenario_actual_option == 'Scenario Management':
 
         st.altair_chart(line_chart, use_container_width=True)
 
-        st.download_button(
-            f"Download Select Data",
-            data=scenario_df_filter.to_csv(index=False).encode('utf-8'),
-            file_name=f'scenario_data.csv',
-            mime='text/csv',
-            help='Click here to download the selected data as a CSV file'
-        )
+        # st.download_button(
+        #     f"Download Select Data",
+        #     data=scenario_df_filter.to_csv(index=False).encode('utf-8'),
+        #     file_name=f'scenario_data.csv',
+        #     mime='text/csv',
+        #     help='Click here to download the selected data as a CSV file'
+        # )
         if len(st.session_state.compare_scenario_select) == 2:
             st.subheader(f'Difference between {st.session_state.compare_scenario_select[0]} and {st.session_state.compare_scenario_select[1]}')
             df_1 = scenario_df_filter[scenario_df_filter['SCENARIO'] == st.session_state.compare_scenario_select[0]]
