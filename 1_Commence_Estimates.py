@@ -7,19 +7,26 @@ warnings.filterwarnings("ignore")
 
 st.set_page_config(page_title=":bar_chart: Commence Estimates", page_icon="📈", layout="wide")
 
-st.title(":bar_chart: Commence Estimates")
+st.title(":bar_chart: EstiUniEnrol")
+st.subheader('Commence Estimates')
 
 st.info(
     "This is a critical annual undertaking process where University determines the target number of commencing students,\n"
     "- All courses.\n"
     "- For subsequent 4 years.\n"
     "- Re-estimate for current year, based on actuals YTD.\n\n"
-    "More FAQ's -- Link to FAQ document to be created by Angela Liu\n\n"
     "**Assumptions**:\n"
     "- New Courses for the current year will not have estimates until the Admin / Faculty manually enters the enrolment count.\n"
     "- By default, the Global Blanket percentage applies, unless the Rule is created which takes precedence.\n"
     "- In case of Overlap of Rules, calculation happens based on the priority of rules selected during the scenario generation.\n"
     "- Faculty own the final enrolment estimates , upon approval (s)would generate the final version of scenario.",
+    icon="ℹ️"
+)
+
+st.info(
+    "The project produced the following documents,\n"
+    "- [GitHub Repo](https://github.com/peiran-chen/hack-g1/tree/main)\n"
+    "- [FAQ - Rule and Scenario Management](https://mqoutlook.sharepoint.com/:f:/r/sites/BIRTeam/BIR%20Events/Snowflake%20Hackathon%202024/Commencing%20Estimates%20Teams/Team%20Peiran?csf=1&web=1&e=8JDRd7)\n",
     icon="ℹ️"
 )
 
