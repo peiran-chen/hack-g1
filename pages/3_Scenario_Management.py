@@ -38,7 +38,7 @@ with st.sidebar:
         '## Options',
         options=[
             'Actuals',
-            'Scenario Management',
+            'Scenario',
             'Faculty Approval'
         ],
         key="scenario_actual_option"
@@ -93,7 +93,7 @@ if st.session_state.scenario_actual_option == 'Actuals':
     #     help='Click here to download the data as a CSV file'
     # )
 
-elif st.session_state.scenario_actual_option == 'Scenario Management':
+elif st.session_state.scenario_actual_option == 'Scenario':
     st.header('Scenario Management')
     scenario_radio = st.radio(
         '## Choose the following options',
