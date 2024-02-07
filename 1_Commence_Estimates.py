@@ -8,15 +8,20 @@ warnings.filterwarnings("ignore")
 st.set_page_config(page_title=":bar_chart: Commence Estimates", page_icon="📈", layout="wide")
 
 st.title(":bar_chart: Commence Estimates")
-st.info("The **Commencing Enrolment** process is a critical annual undertaking where the University strategically "
-        " determines the target number of commencing students for all courses for the upcoming year and the indicative "
-        "estimates for the subsequent four years. As part of this process, the University also determines the updated "
-        "estimate of commencing students for the current year, based on actuals year-to-date.\n"
-        "The estimate tool created by group 1 implements the following features,\n"
-        "- Support role based operations\n"
-        "- Allow create and modify versions of estimates\n"
-        "- Visualise the actuals and versions of estimates for comparison\n"
-        "- Email notification for better collabration", icon="ℹ️")
+
+st.info(
+    "This is a critical annual undertaking process where University determines the target number of commencing students,\n"
+    "- All courses.\n"
+    "- For subsequent 4 years.\n"
+    "- Re-estimate for current year, based on actuals YTD.\n\n"
+    "More FAQ's -- Link to FAQ document to be created by Angela Liu\n\n"
+    "**Assumptions**:\n"
+    "- New Courses for the current year will not have estimates until the Admin / Faculty manually enters the enrolment count.\n"
+    "- By default, the Global Blanket percentage applies, unless the Rule is created which takes precedence.\n"
+    "- In case of Overlap of Rules, calculation happens based on the priority of rules selected during the scenario generation.\n"
+    "- Faculty own the final enrolment estimates , upon approval (s)would generate the final version of scenario.",
+    icon="ℹ️"
+)
 
 def create_session():
     # Snowflake session
