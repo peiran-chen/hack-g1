@@ -34,12 +34,13 @@ Start app:
 SNOWSQL_PWD='0*******o' snowsql --accountname 'vd12345-hackathon' --username 'jsmith' --dbname 'hackathon' --schemaname 'group_1' --warehouse 'compute_wh' --rolename 'ACCOUNTADMIN'
 drop stage hackathon.group_1.streamlit_stage;
 create or replace stage hackathon.group_1.streamlit_stage;
+REMOVE @hackathon.group_1.streamlit_stage/;
 PUT 'file:///home/klo/Projects/mq/hack-g1/1_Commence_Estimates.py' @hackathon.group_1.streamlit_stage overwrite=true auto_compress=false;
 PUT 'file:///home/klo/Projects/mq/hack-g1/environment.yml' @hackathon.group_1.streamlit_stage overwrite=true auto_compress=false;
-PUT 'file:///home/klo/Projects/mq/hack-g1/pages/2_Dashboard.py' @hackathon.group_1.streamlit_stage/pages overwrite=true auto_compress=false;
-PUT 'file:///home/klo/Projects/mq/hack-g1/pages/3_Reference_Data.py' @hackathon.group_1.streamlit_stage/pages overwrite=true auto_compress=false;
-PUT 'file:///home/klo/Projects/mq/hack-g1/pages/4_Rule_Settings.py' @hackathon.group_1.streamlit_stage/pages overwrite=true auto_compress=false;
-PUT 'file:///home/klo/Projects/mq/hack-g1/pages/5_Scenario_Management.py' @hackathon.group_1.streamlit_stage/pages overwrite=true auto_compress=false;
+PUT 'file:///home/klo/Projects/mq/hack-g1/pages/2_Rule_Settings.py' @hackathon.group_1.streamlit_stage/pages overwrite=true auto_compress=false;
+PUT 'file:///home/klo/Projects/mq/hack-g1/pages/3_Scenario_Management.py' @hackathon.group_1.streamlit_stage/pages overwrite=true auto_compress=false;
+PUT 'file:///home/klo/Projects/mq/hack-g1/pages/4_Dashboard.py' @hackathon.group_1.streamlit_stage/pages overwrite=true auto_compress=false;
+PUT 'file:///home/klo/Projects/mq/hack-g1/pages/5_Reference_Data.py' @hackathon.group_1.streamlit_stage/pages overwrite=true auto_compress=false;
 -- Libraries
 PUT 'file:///home/klo/Projects/mq/hack-g1/helpers/__init__.py' @hackathon.group_1.streamlit_stage/helpers overwrite=true auto_compress=false;
 PUT 'file:///home/klo/Projects/mq/hack-g1/helpers/utils.py' @hackathon.group_1.streamlit_stage/helpers overwrite=true auto_compress=false;
