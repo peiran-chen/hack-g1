@@ -753,8 +753,9 @@ elif st.session_state.scenario_actual_option == 'Faculty Approval':
         )):
         scenario = Scenario.find(scenario.id)
         scenario.approve()
+        st.success('Approval Saved.')
+        time.sleep(3)
         st.experimental_rerun()
-
 
     st.header('Approval Status')
     if role == 'G1_FACULTY_ARTS':
