@@ -1,3 +1,4 @@
+from datetime import datetime
 import itertools
 import json
 import time
@@ -928,14 +929,34 @@ elif st.session_state.scenario_actual_option == 'Faculty Approval':
     scenario = Scenario.find_by_ui_value(scenario_text)
 
     role = Utils.get_session_role()
-    
-    comment = st.text_area('Comment', value=scenario.notes, disabled=scenario.has_role_approved())
 
-    if (st.button('Comment', disabled=scenario.has_role_approved())):
-        scenario = Scenario.find(scenario.id)
-        scenario.notes = comment
-        scenario.save()
-        st.experimental_rerun()
+    comments_df = session.sql("select * from scenario_notes where scenario_id=? order by CREATED_AT", params=[scenario.id]).to_pandas()
+    for index, row in comments_df.iterrows():
+        st.info(f"""
+{row['CREATED_BY']} @ {row['CREATED_AT']}:
+
+{row['NOTES']}
+""")
+
+    comment = st.text_area('Comment', disabled=scenario.has_role_approved())
+
+    def add_comment(comment):
+        session = Utils.get_session()
+        session.sql(
+f"""
+insert into scenario_notes (scenario_id, notes, created_by, created_at) values
+(?, ?, ?, current_timestamp)
+""",
+            params=[scenario.id, comment, Utils.get_session_role()]
+        ).collect()
+
+    if (st.button(
+            'Add Comment',
+            disabled=scenario.has_role_approved()
+        )):
+            scenario = Scenario.find(scenario.id)
+            add_comment(comment)
+            st.experimental_rerun()
 
     if (st.button(
             '✅ Approve',
