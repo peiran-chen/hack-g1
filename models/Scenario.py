@@ -59,6 +59,7 @@ class Scenario:
         self.confirmed_by_fmhhs = 'Y'
     elif role in ('ACCOUNTADMIN', 'G1_ADMIN'):
         self.is_final = 'Y'
+        self.version_name = f"{self.version_name} - Final"
     else:
         raise f"No role match: {role}"
 
