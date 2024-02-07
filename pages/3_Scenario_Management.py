@@ -302,7 +302,7 @@ elif st.session_state.scenario_actual_option == 'Scenario Management':
                                     on=['COURSE', 'PERIOD', 'COMMENCING_STUDY_PERIOD', 'OWNING_FACULTY', 'COURSE_LEVEL_NAME', 'FEE_LIABILITY_GROUP'],
                                     suffixes=('_OLD', '')
                                 )
-                                st.write(df)
+                                # st.write(df)
                                 df['INCREASE_BY'].fillna(df['INCREASE_BY_OLD'], inplace=True)
 
                                 df.drop(columns=['INCREASE_BY_OLD'], inplace=True)
@@ -355,6 +355,220 @@ elif st.session_state.scenario_actual_option == 'Scenario Management':
                         'Set targets for 2025 and set the outlook for 2026-2029.\n'
                         'Fine tune the enrolment count based on the *Role*. '
                         'A new version is saved in Snowflake after submit')
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.selectbox(
+                        '## Choose Actual Name',
+                        actual_df.select('ACTUAL_NAME').distinct().order_by('ACTUAL_NAME'),
+                        key='cs_actual_name_select'
+                    )
+                with col2:
+                    st.selectbox(
+                        '## Choose Base Scenario Name',
+                        scenario_df.select('SCENARIO').distinct().order_by('SCENARIO'),
+                        key='cs_estimate_scenario_select'
+                    )
+
+                # add rule choices
+                admin_roles = ['ACCOUNTADMIN', 'G1_ADMIN']
+                faculty_roles = [
+                    'G1_FACULTY_SCI',
+                    'G1_FACULTY_ARTS',
+                    'G1_FACULTY_MQBS',
+                    'G1_FACULTY_FMHHS',
+                ]
+                recuitement_staff_roles = ['G1_RECRUITMENT_INTERNATIONAL', 'G1_RECRUITMENT_DOMESTIC']
+
+                if current_role in admin_roles:
+                    msg = 'BIR Admin can apply Admin Rules, Recruitement Rules and Faculty Rules'
+                    st.info(msg, icon='ℹ️')
+                    allow_rule_owner_list = [
+                        *admin_roles,
+                        *faculty_roles,
+                        *recuitement_staff_roles
+                    ]
+                elif current_role in faculty_roles:
+                    msg = 'Faculty Admin can apply faculty rules and Recruitement Rules'
+                    st.info(msg, icon='ℹ️')
+                    allow_rule_owner_list = [
+                        *faculty_roles,
+                        *recuitement_staff_roles
+                    ]
+                elif current_role in recuitement_staff_roles:
+                    msg = 'Recuitement Staff does not generate estimation'
+                    st.warning(msg)
+
+                default_increase_input = st.text_input(
+                    '## Default Annual Increase, eg, 0.03 is 3%',
+                    value='0.03',
+                    key='default_increase_input'
+                )
+
+                rule_df = session.table('rule').to_pandas()
+                rule_df = rule_df[rule_df['RULE_OWNER'].isin(allow_rule_owner_list)]
+                with st.expander('View All Available Rules'):
+                    st.write(rule_df[['RULE_NAME', 'DESCRIPTION', 'EXTRA_COMMENT', 'RULE_OWNER']])
+
+                rule_select = st.multiselect(
+                    '**Select Rules**. Please pay attention to the sequence. '
+                    'The estimation rules will be applied in order.',
+                    rule_df['RULE_NAME'],
+                    help="abc",
+                    key='rule_select'
+                )
+
+                rule_select_text = '\n'.join(['- ' + x for x in st.session_state.rule_select])
+
+                description_text = f'The 2024 whole year estimation is based on the pro rata calcuation on top of the actual ' \
+                                   f'**{st.session_state.cs_actual_name_select}** ' \
+                                   f'enrolments and esitmation plan **{st.session_state.cs_estimate_scenario_select}**. \n' \
+                                   f'The rest 2025-2029 calcuation applies the estimation rules, including default annual increase.' \
+                                   f'The select rules are,\n' \
+                                   f'{rule_select_text}'
+                st.info(description_text, icon='ℹ️')
+
+                # fetch rule details
+                # rule_detail_list = rule_df[rule_df['RULE_NAME'].isin(st.session_state.rule_select)]['RULE_CONTENT']
+                rule_json_list = []
+                if st.session_state.rule_select:
+                    for i in st.session_state.rule_select:
+                        rule_str = rule_df[rule_df['RULE_NAME'] == i].RULE_CONTENT.iloc[0]
+                        rule_json = json.loads(rule_str)
+                        rule_json_list.append(rule_json)
+                        # st.write(rule_json)
+                    with st.expander('View Rules'):
+                        st.write(rule_json_list)
+
+                # apply default rules
+                default_increase_float = float(st.session_state.default_increase_input)
+
+                submit = st.button(
+                    '## Generate Scenario'
+                )
+                if submit:
+                    try:
+                        # estimate current year based on July Round (Session 2)
+                        # July (session 1 + session 2) actual
+                        july_actual_df = session.table('commence_actual').filter(
+                            col('ACTUAL_NAME') == st.session_state.cs_actual_name_select
+                        ).select(sum(col('COURSE_ENROLMENT_COUNT')).alias('COURSE_ENROLMENT_COUNT'))
+                        s1_s2_actual = july_actual_df.to_pandas().iloc[0]['COURSE_ENROLMENT_COUNT']
+
+                        st.write(st.session_state.cs_estimate_scenario_select)
+
+                        scenario_data_df = session.table('SCENARIO_DATA')
+
+                        scenario_id = scenario_df.filter(
+                            col('SCENARIO') == st.session_state.cs_estimate_scenario_select
+                        ).select('ID').to_pandas().iloc[0]['ID']
+
+                        # st.write(scenario_id)
+
+                        scenario_data_df_filter = session.table('SCENARIO_DATA').filter(
+                            (col('SCENARIO_ID') == int(scenario_id)) & (
+                                    (col('COMMENCING_STUDY_PERIOD') == 'Session 1') | (col('COMMENCING_STUDY_PERIOD') == 'Session 2') ) & (col('PERIOD') == '2024')
+                        )
+                        s1_s2_estimate = scenario_data_df_filter.select(
+                            sum('COURSE_ENROLMENT_COUNT').alias('COURSE_ENROLMENT_COUNT')
+                        ).select('COURSE_ENROLMENT_COUNT').to_pandas().iloc[0]['COURSE_ENROLMENT_COUNT']
+                        increase_by = float(s1_s2_actual / s1_s2_estimate)
+                        # st.write(f'increase by {increase_by}')
+
+                        not_s1_s2_estimate_df = session.table('SCENARIO_DATA').filter(
+                            (col('SCENARIO_ID') == int(scenario_id)) & (
+                                        col('COMMENCING_STUDY_PERIOD') != 'Session 1') & (col('COMMENCING_STUDY_PERIOD') != 'Session 2') & (col('PERIOD') == '2024')
+                        )
+                        not_s1_s2_estimate_df_pd = not_s1_s2_estimate_df.to_pandas()
+                        not_s1_s2_estimate_df_pd['COURSE_ENROLMENT_COUNT'] = np.ceil(
+                            not_s1_s2_estimate_df_pd['COURSE_ENROLMENT_COUNT'] * increase_by)
+                        not_s1_s2_estimate_df_pd = not_s1_s2_estimate_df_pd.drop(columns=['ID'])
+                        # st.write(not_s1_s2_estimate_df_pd)
+                        july_actual_df_pd = session.table('commence_actual').filter(
+                            col('ACTUAL_NAME') == st.session_state.cs_actual_name_select
+                        ).to_pandas()
+                        july_actual_df_pd = july_actual_df_pd[
+                            ['COURSE', 'PERIOD', 'COMMENCING_STUDY_PERIOD', 'OWNING_FACULTY', 'COURSE_LEVEL_NAME',
+                             'FEE_LIABILITY_GROUP', 'COURSE_ENROLMENT_COUNT']]
+                        july_actual_df_pd['SCENARIO_ID'] = int(scenario_id)
+                        july_actual_df_pd = july_actual_df_pd[
+                            ['SCENARIO_ID', 'COURSE', 'PERIOD', 'COMMENCING_STUDY_PERIOD', 'OWNING_FACULTY',
+                             'COURSE_LEVEL_NAME', 'FEE_LIABILITY_GROUP', 'COURSE_ENROLMENT_COUNT']]
+                        estimate_2024_pd = pd.concat([july_actual_df_pd, not_s1_s2_estimate_df_pd], sort=False)
+
+                        estimate_2024_pd['INCREASE_BY'] = float(st.session_state.default_increase_input)
+                        df = estimate_2024_pd.copy()
+
+                        estimate_all_pd = estimate_2024_pd
+                        for year in ['2025', '2026', '2027', '2028', '2029']:
+                            df['PERIOD'] = year
+                            for rule_dict in rule_json_list:
+                                x = {
+                                    'COURSE': rule_dict.get('courses'),
+                                    'PERIOD': rule_dict.get('periods'),
+                                    'COMMENCING_STUDY_PERIOD': rule_dict.get('commencing_study_periods'),
+                                    'OWNING_FACULTY': rule_dict.get('owning_faculties'),
+                                    'COURSE_LEVEL_NAME': rule_dict.get('course_level_names'),
+                                    'FEE_LIABILITY_GROUP': rule_dict.get('fee_liability_groups'),
+                                    'INCREASE_BY': [rule_dict.get('increase_by')],
+                                }
+                                rule_pd = pd.DataFrame(list(itertools.product(*x.values())), columns=x.keys())
+                                df = pd.merge(
+                                    df, rule_pd,
+                                    how="left",
+                                    on=['COURSE', 'PERIOD', 'COMMENCING_STUDY_PERIOD', 'OWNING_FACULTY',
+                                        'COURSE_LEVEL_NAME', 'FEE_LIABILITY_GROUP'],
+                                    suffixes=('_OLD', '')
+                                )
+                                # st.write(df)
+                                df['INCREASE_BY'].fillna(df['INCREASE_BY_OLD'], inplace=True)
+
+                                df.drop(columns=['INCREASE_BY_OLD'], inplace=True)
+
+                            df['COURSE_ENROLMENT_COUNT'] = np.ceil(
+                                df['COURSE_ENROLMENT_COUNT'] * (1 + df['INCREASE_BY']))
+                            estimate_all_pd = pd.concat([estimate_all_pd, df], sort=False)
+                        # st.dataframe(estimate_all_pd)
+                        # st.write(estimate_all_pd.shape)
+                        session.write_pandas(estimate_all_pd, 'tmp_estimate', quote_identifiers=False,
+                                             auto_create_table=True, overwrite=True)
+
+                        insert_scenario_sql = \
+                            f"""insert into scenario (scenario_name, version_name, notes)
+                                                                    values(
+                                                                    '{st.session_state.cs_scenario_name_input}',
+                                                                    'init',
+                                                                    '{st.session_state.cs_scenario_notes_input}'
+                                                                    )"""
+                        session.sql(insert_scenario_sql).collect()
+
+                        insert_scenario_data_sql = f"""insert into scenario_data (scenario_id, 
+                                                                                                    course,
+                                                                                                    period,
+                                                                                                    commencing_study_period,
+                                                                                                    owning_faculty,
+                                                                                                    course_level_name,
+                                                                                                    fee_liability_group,
+                                                                                                    course_enrolment_count)
+                                                                    select s.id as scenario_id,
+                                                                            t.course,
+                                                                            t.period,
+                                                                            t.commencing_study_period,
+                                                                            t.owning_faculty,
+                                                                            t.course_level_name,
+                                                                            t.fee_liability_group,
+                                                                            t.course_enrolment_count
+                                                                        from scenario s
+                                                                        inner join tmp_estimate as t
+                                                                        where s.scenario_name='{st.session_state.cs_scenario_name_input}' 
+                                                                            and version_name='init'
+                                                                    """
+                        session.sql(insert_scenario_data_sql).collect()
+
+                        st.success(f'Scenario **{st.session_state.cs_scenario_name_input}** is saved in Snowflake')
+                    except Exception as e:
+                        st.error('Failed to save')
+                        st.error(e)
+
         elif st.session_state.create_scenario_select:
             # have drop down to pick a scenario and version
             st.info(
@@ -364,7 +578,7 @@ elif st.session_state.scenario_actual_option == 'Scenario Management':
                 'Faculty can modify all versions but limited to the only faculty.',
                 icon='ℹ️'
             )
-            st.write(st.session_state.create_scenario_select)
+            # st.write(st.session_state.create_scenario_select)
             scenario_df_pd = scenario_df.to_pandas()
             scenario_df_pd = scenario_df_pd[scenario_df_pd['SCENARIO'] == st.session_state.create_scenario_select]
 
@@ -575,30 +789,6 @@ elif st.session_state.scenario_actual_option == 'Scenario Management':
                             st.warning("Error updating table")
                         # st.experimental_rerun()
 
-
-
-                # st.write(scenario_data_df)
-                # st.write(scenario_data_df['SCENARIO_ID'].unique())
-                # get data from scenario data
-
-
-            # scenario_df = session.table('scenario').to_pandas()
-            # unique_scenario = scenario_df['SCENARIO_NAME'].unique()
-            # st.selectbox(
-            #     '## Select Scenario',
-            #     unique_scenario,
-            #     key="modify_scenario_select"
-            # )
-
-
-
-
-            # scenario_data_df = scenario_data_df.to_pandas()
-            # st.write(f'**Scenario Name**: {st.session_state.create_scenario_select}')
-            # cs_pd_filter = scenario_data_df_pd[
-            #     scenario_data_df_pd['SCENARIO'] == st.session_state.create_scenario_select
-            # ]
-            # st.write(f'**Notes**: {cs_pd_filter["NOTES"].iloc[0]}')
     elif st.session_state.scenario_radio == 'Compare Scenarios':
         # choose multiple scenario to compare
         scenario_df = session.sql(
