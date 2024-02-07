@@ -477,7 +477,7 @@ elif st.session_state.scenario_actual_option == 'Scenario Management':
                     if st.session_state.modify_scenario_save_option == 'Save to a New Version':
                         st.text_input(
                             '## Please Provide Version Name',
-                            values="",
+                            value="",
                             key='modify_scenario_version'
                         )
 
@@ -489,7 +489,7 @@ elif st.session_state.scenario_actual_option == 'Scenario Management':
                     submit_button = st.button("Save Data")
 
                     if submit_button:
-                        st.info('button clicked')
+                        st.info('button clicked. Please wait for 5 seconds')
                         try:
                             # save modified data to temp table, later merge / update
                             session.write_pandas(
@@ -504,26 +504,50 @@ elif st.session_state.scenario_actual_option == 'Scenario Management':
                             time.sleep(3)
 
                             if st.session_state.modify_scenario_save_option == 'Save to a New Version':
-                                '''
-                                insert_scenario_sql = \
-                            f"""insert into scenario (scenario_name, version_name, notes)
-                                                    values(
-                                                    '{st.session_state.cs_scenario_name_input}',
-                                                    'init',
-                                                    '{st.session_state.cs_scenario_notes_input}'
-                                                    )"""
-                        session.sql(insert_scenario_sql).collect()
-                                '''
+
                                 scenario_name = scenario_df_pd['SCENARIO_NAME'].iloc[0]
                                 session.sql(
                                     f"""insert into scenario (scenario_name, version_name, notes)
                                                     values(
-                                                    'scenario_name',
+                                                    '{scenario_name}',
                                                     '{st.session_state.modify_scenario_version}',
                                                     '{st.session_state.modify_scenario_notes}'
                                                     )"""
                                 ).collect()
-                            elif st.session_state.modify_scenario_save_option == 'Save to Current Version':
+                                session.sql(
+                                    f"""insert into scenario_data (scenario_id, 
+                                                                                    course,
+                                                                                    period,
+                                                                                    commencing_study_period,
+                                                                                    owning_faculty,
+                                                                                    course_level_name,
+                                                                                    fee_liability_group,
+                                                                                    course_enrolment_count)
+                                                    select (select id from scenario 
+                                                        where scenario_name='{scenario_name}'
+                                                        and version_name= '{st.session_state.modify_scenario_version}'
+                                                        ) as scenario_id,
+                                                    sd.course,
+                                                    sd.period,
+                                                    sd.COMMENCING_STUDY_PERIOD,
+                                                    sd.owning_faculty,
+                                                    sd.course_level_name,
+                                                    sd.fee_liability_group,
+                                                    coalesce(t.course_enrolment_count, sd.course_enrolment_count) as course_enrolment_count
+                                                from scenario_data as sd
+                                                left outer join tmp_modify_scenario as t
+                                                    on t.id = sd.id
+                                                where exists(
+                                                    select null
+                                                    from tmp_modify_scenario as t1
+                                                    where t1.scenario_id=sd.scenario_id
+                                                )
+"""
+                                ).collect()
+                                msg = st.success(f"Data is saved to the version ")
+                                time.sleep(3)
+                                msg.empty()
+                            elif st.session_state.modify_scenario_save_option == 'Save to Current Version **{st.session_state.modify_scenario_version}**':
                                 session.sql(
                                     f"""update scenario_data as s
                                         set course_enrolment_count=t.course_enrolment_count
@@ -541,7 +565,7 @@ elif st.session_state.scenario_actual_option == 'Scenario Management':
                                     """
                                 ).collect()
 
-                                msg = st.success("Data updated")
+                                msg = st.success("Data is saved to the current version")
                                 time.sleep(3)
                                 msg.empty()
                         except:
