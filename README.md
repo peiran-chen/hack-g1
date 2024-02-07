@@ -53,6 +53,8 @@ root_location = '@hackathon.group_1.streamlit_stage'
 main_file = '/1_Commence_Estimates.py'
 query_warehouse = 'compute_wh';
 
+-- Rename to final name "EstiUniEnrol"
+ALTER STREAMLIT group_1 RENAME TO EstiUniEnrol;
 
 -- create or replace streamlit kokyantest
 -- root_location = '@hackathon.group_1.streamlit_stage'

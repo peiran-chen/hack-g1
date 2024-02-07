@@ -916,8 +916,7 @@ elif st.session_state.scenario_actual_option == 'Scenario Management':
 
 elif st.session_state.scenario_actual_option == 'Faculty Approval':
 
-    
-    st.header('Faculty Approval')
+    st.header('Select scenario to approve')
 
     Utils.get_session()
     scenarios = session.sql("select SCENARIO_NAME||' - '||VERSION_NAME as options from scenario").to_pandas()
@@ -929,7 +928,26 @@ elif st.session_state.scenario_actual_option == 'Faculty Approval':
     scenario = Scenario.find_by_ui_value(scenario_text)
 
     role = Utils.get_session_role()
-    st.write(role)
+    
+    comment = st.text_area('Comment', value=scenario.notes, disabled=scenario.has_role_approved())
+
+    if (st.button('Comment', disabled=scenario.has_role_approved())):
+        scenario = Scenario.find(scenario.id)
+        scenario.notes = comment
+        scenario.save()
+        st.experimental_rerun()
+
+    if (st.button(
+            '✅ Approve',
+            disabled=scenario.has_role_approved()
+        )):
+        scenario = Scenario.find(scenario.id)
+        scenario.approve()
+        st.success('Approval Saved.')
+        time.sleep(3)
+        st.experimental_rerun()
+
+    st.header('Approval Status')
     if role == 'G1_FACULTY_ARTS':
         approve_arts = st.checkbox('Arts', disabled=True, value=(True if scenario.confirmed_by_arts=='Y' else False))
     elif role == 'G1_FACULTY_MQBS':
@@ -946,19 +964,3 @@ elif st.session_state.scenario_actual_option == 'Faculty Approval':
         approve_admin = st.checkbox('Admin', disabled=True, value=(True if scenario.is_final=='Y' else False))
     else:
         raise f"No role match: {role}"
-    
-    comment = st.text_area('Comment', value=scenario.notes, disabled=scenario.has_role_approved())
-
-    if (st.button('Comment', disabled=scenario.has_role_approved())):
-        scenario = Scenario.find(scenario.id)
-        scenario.notes = comment
-        scenario.save()
-        st.experimental_rerun()
-
-    if (st.button(
-            'Comment + Approve',
-            disabled=scenario.has_role_approved()
-        )):
-        scenario = Scenario.find(scenario.id)
-        scenario.approve()
-        st.experimental_rerun()
