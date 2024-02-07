@@ -1,5 +1,6 @@
 import itertools
 import json
+import time
 
 import streamlit as st
 from snowflake.snowpark.context import get_active_session
@@ -352,12 +353,225 @@ elif st.session_state.scenario_actual_option == 'Scenario Management':
                         'Fine tune the enrolment count based on the *Role*. '
                         'A new version is saved in Snowflake after submit')
         elif st.session_state.create_scenario_select:
-            scenario_data_df_pd = scenario_data_df.to_pandas()
-            st.write(f'**Scenario Name**: {st.session_state.create_scenario_select}')
-            cs_pd_filter = scenario_data_df_pd[
-                scenario_data_df_pd['SCENARIO'] == st.session_state.create_scenario_select
-            ]
-            st.write(f'**Notes**: {cs_pd_filter["NOTES"].iloc[0]}')
+            # have drop down to pick a scenario and version
+            st.info(
+                'Modify or save the version to a new version. \n'
+                'The finalised scenario can not be modified in this page.\n'
+                'Except the finalised version, BIR Admin can modify all versions. \n'
+                'Faculty can modify all versions but limited to the only faculty.',
+                icon='ℹ️'
+            )
+            st.write(st.session_state.create_scenario_select)
+            scenario_df_pd = scenario_df.to_pandas()
+            scenario_df_pd = scenario_df_pd[scenario_df_pd['SCENARIO'] == st.session_state.create_scenario_select]
+
+            st.write(scenario_df_pd)
+            is_final = scenario_df_pd['IS_FINAL'].iloc[0]
+
+            if is_final == 'Y':
+                st.warning(f'{st.session_state.create_scenario_select} is a final version. Can not be modified.')
+            else:
+                # display notes
+                with st.expander('View Notes and History'):
+                    st.text_area(
+                        '**Notes**',
+                        scenario_df_pd['NOTES'].iloc[0]
+                    )
+                scenario_id = scenario_df_pd['ID'].iloc[0]
+                # st.write(scenario_id)
+                scenario_data_df = session.table('scenario_data').filter(
+                    col('SCENARIO_ID') == int(scenario_id)
+                ).to_pandas()
+
+                # manage security. Admin can access all faculty courses. Faculty can only access faculty ones
+                allow_faculty_list = []
+                if current_role in ('ACCOUNTADMIN', 'G1_ADMIN'):
+                    allow_faculty_list = scenario_data_df['OWNING_FACULTY'].unique().tolist()
+                elif current_role == 'G1_FACULTY_SCI':
+                    allow_faculty_list = ['Faculty of Science and Engineering']
+                elif current_role == 'G1_FACULTY_ARTS':
+                    allow_faculty_list = ['Faculty of Arts']
+                elif current_role == 'G1_FACULTY_MQBS':
+                    allow_faculty_list = ['Macquarie Business School']
+                elif current_role == 'G1_FACULTY_FMHHS':
+                    allow_faculty_list = ['Faculty of Medicine, Health and Human Sciences']
+
+                # st.write(allow_faculty_list)
+
+                scenario_data_df_filter = scenario_data_df.copy()
+
+                st.selectbox(
+                    '## Owning Faculty',
+                    sorted(scenario_data_df[scenario_data_df['OWNING_FACULTY'].isin(allow_faculty_list)]['OWNING_FACULTY'].unique()),
+                    key='modify_scenario_owning_faculty'
+                )
+                scenario_data_df_filter = scenario_data_df_filter[scenario_data_df_filter['OWNING_FACULTY'] == st.session_state.modify_scenario_owning_faculty]
+
+                (col1, col2) = st.columns(2)
+                with col1:
+                    st.selectbox(
+                        '## Period',
+                        sorted(scenario_data_df[scenario_data_df['OWNING_FACULTY'].isin(allow_faculty_list)]['PERIOD'].unique()),
+                        key='modify_scenario_period'
+                    )
+                    if st.session_state.modify_scenario_period:
+                        scenario_data_df_filter = scenario_data_df_filter[
+                            scenario_data_df_filter['PERIOD'] == st.session_state.modify_scenario_period]
+
+                    st.selectbox(
+                        '## Commencing Study Period',
+                        sorted(scenario_data_df[scenario_data_df['OWNING_FACULTY'].isin(allow_faculty_list)][
+                                   'COMMENCING_STUDY_PERIOD'].unique()),
+                        key='modify_scenario_commencing_study_period'
+                    )
+                    if st.session_state.modify_scenario_commencing_study_period:
+                        scenario_data_df_filter = scenario_data_df_filter[
+                            scenario_data_df_filter['COMMENCING_STUDY_PERIOD'] == st.session_state.modify_scenario_commencing_study_period]
+
+                with col2:
+                    st.multiselect(
+                        '## Courses',
+                        sorted(scenario_data_df[
+                                   (scenario_data_df['OWNING_FACULTY'].isin(allow_faculty_list)) & (scenario_data_df['OWNING_FACULTY'] == st.session_state.modify_scenario_owning_faculty)
+                               ][
+                                   'COURSE'].unique()),
+                        key='modify_scenario_course'
+                    )
+                    if st.session_state.modify_scenario_course:
+                        scenario_data_df_filter = scenario_data_df_filter[
+                            scenario_data_df_filter['COURSE'].isin(
+                                st.session_state.modify_scenario_course)]
+                    st.multiselect(
+                        '## Course Level names',
+                        sorted(scenario_data_df[scenario_data_df['OWNING_FACULTY'].isin(allow_faculty_list)]['COURSE_LEVEL_NAME'].unique()),
+                        key='modify_scenario_course_level_name'
+                    )
+                    if st.session_state.modify_scenario_course_level_name:
+                        scenario_data_df_filter = scenario_data_df_filter[
+                            scenario_data_df_filter['COURSE_LEVEL_NAME'].isin(st.session_state.modify_scenario_course_level_name)]
+
+                    st.multiselect(
+                        '## Fee Liability Group',
+                        sorted(scenario_data_df[scenario_data_df['OWNING_FACULTY'].isin(allow_faculty_list)][
+                                   'FEE_LIABILITY_GROUP'].unique()),
+                        key='modify_scenario_fee_liability_group'
+                    )
+                    if st.session_state.modify_scenario_fee_liability_group:
+                        scenario_data_df_filter = scenario_data_df_filter[
+                            scenario_data_df_filter['FEE_LIABILITY_GROUP'].isin(
+                                st.session_state.modify_scenario_fee_liability_group)]
+
+                if st.session_state.modify_scenario_owning_faculty:
+
+                    edit_df = st.experimental_data_editor(
+                        scenario_data_df_filter,
+                        num_rows="dynamic",
+                        key="modify_scenario_edit_df"
+                    )
+                    st.radio(
+                        '**Option**',
+                        ['Save to a New Version', 'Save to Current Version'],
+                        key='modify_scenario_save_option'
+                    )
+
+                    if st.session_state.modify_scenario_save_option == 'Save to a New Version':
+                        st.text_input(
+                            '## Please Provide Version Name',
+                            values="",
+                            key='modify_scenario_version'
+                        )
+
+                    st.text_area(
+                        '## Add comments of the change',
+                        value="",
+                        key='modify_scenario_notes'
+                    )
+                    submit_button = st.button("Save Data")
+
+                    if submit_button:
+                        st.info('button clicked')
+                        try:
+                            # save modified data to temp table, later merge / update
+                            session.write_pandas(
+                                edit_df,
+                                table_name=f'tmp_modify_scenario',
+                                overwrite=True,
+                                create_temp_table=False,
+                                quote_identifiers=False,
+                                auto_create_table=True,
+                                # table_type='temp'
+                            )
+                            time.sleep(3)
+
+                            if st.session_state.modify_scenario_save_option == 'Save to a New Version':
+                                '''
+                                insert_scenario_sql = \
+                            f"""insert into scenario (scenario_name, version_name, notes)
+                                                    values(
+                                                    '{st.session_state.cs_scenario_name_input}',
+                                                    'init',
+                                                    '{st.session_state.cs_scenario_notes_input}'
+                                                    )"""
+                        session.sql(insert_scenario_sql).collect()
+                                '''
+                                scenario_name = scenario_df_pd['SCENARIO_NAME'].iloc[0]
+                                session.sql(
+                                    f"""insert into scenario (scenario_name, version_name, notes)
+                                                    values(
+                                                    'scenario_name',
+                                                    '{st.session_state.modify_scenario_version}',
+                                                    '{st.session_state.modify_scenario_notes}'
+                                                    )"""
+                                ).collect()
+                            elif st.session_state.modify_scenario_save_option == 'Save to Current Version':
+                                session.sql(
+                                    f"""update scenario_data as s
+                                        set course_enrolment_count=t.course_enrolment_count
+                                        from tmp_modify_scenario as t
+                                        where t.id=s.id"""
+                                ).collect()
+                                session.sql(
+                                    f"""insert into scenario_notes (scenario_id, notes, created_by, created_at)
+                                    values (
+                                    {scenario_id},
+                                    '{st.session_state.modify_scenario_notes}',
+                                    '{current_role}',
+                                    current_timestamp()
+                                    )
+                                    """
+                                ).collect()
+
+                                msg = st.success("Data updated")
+                                time.sleep(3)
+                                msg.empty()
+                        except:
+                            st.warning("Error updating table")
+                        # st.experimental_rerun()
+
+
+
+                # st.write(scenario_data_df)
+                # st.write(scenario_data_df['SCENARIO_ID'].unique())
+                # get data from scenario data
+
+
+            # scenario_df = session.table('scenario').to_pandas()
+            # unique_scenario = scenario_df['SCENARIO_NAME'].unique()
+            # st.selectbox(
+            #     '## Select Scenario',
+            #     unique_scenario,
+            #     key="modify_scenario_select"
+            # )
+
+
+
+
+            # scenario_data_df = scenario_data_df.to_pandas()
+            # st.write(f'**Scenario Name**: {st.session_state.create_scenario_select}')
+            # cs_pd_filter = scenario_data_df_pd[
+            #     scenario_data_df_pd['SCENARIO'] == st.session_state.create_scenario_select
+            # ]
+            # st.write(f'**Notes**: {cs_pd_filter["NOTES"].iloc[0]}')
     elif st.session_state.scenario_radio == 'Compare Scenarios':
         # choose multiple scenario to compare
         scenario_df = session.sql(
@@ -415,10 +629,9 @@ elif st.session_state.scenario_actual_option == 'Scenario Management':
             )
 
         scenario_df_filter = scenario_df.copy()
-        if st.session_state.compare_scenario_select:
-            scenario_df_filter = scenario_df_filter[scenario_df_filter['SCENARIO'].isin(st.session_state.compare_scenario_select)]
-        else:
-            scenario_df_filter = scenario_df_filter
+        scenario_df_filter = scenario_df_filter[
+        scenario_df_filter['SCENARIO'].isin(st.session_state.compare_scenario_select)]
+
         if st.session_state.compare_period_select:
             scenario_df_filter = scenario_df_filter[scenario_df_filter['PERIOD'].isin(st.session_state.compare_period_select)]
         else:
@@ -471,22 +684,17 @@ elif st.session_state.scenario_actual_option == 'Scenario Management':
             mime='text/csv',
             help='Click here to download the selected data as a CSV file'
         )
-
-        st.subheader(st.session_state.compare_scenario_select[0])
-        st.write(scenario_df_filter[scenario_df_filter['SCENARIO'] == st.session_state.compare_scenario_select[0]])
-
-        st.subheader(st.session_state.compare_scenario_select[1])
-        st.write(scenario_df_filter[scenario_df_filter['SCENARIO'] == st.session_state.compare_scenario_select[1]])
-
-        df_1 = scenario_df_filter[scenario_df_filter['SCENARIO'] == st.session_state.compare_scenario_select[0]]
-        df_2 = scenario_df_filter[scenario_df_filter['SCENARIO'] == st.session_state.compare_scenario_select[1]]
-        merged_df = pd.merge(
-            df_1,
-            df_2,
-            on=['COURSE', 'PERIOD', 'COMMENCING_STUDY_PERIOD', 'OWNING_FACULTY', 'COURSE_LEVEL_NAME', 'FEE_LIABILITY_GROUP'],
-            suffixes=(' '+st.session_state.compare_scenario_select[0], ' '+st.session_state.compare_scenario_select[1])
-        ).drop(columns=[f'SCENARIO {st.session_state.compare_scenario_select[0]}', f'SCENARIO {st.session_state.compare_scenario_select[1]}'])
-        st.write(merged_df)
+        if len(st.session_state.compare_scenario_select) == 2:
+            st.subheader(f'Difference between {st.session_state.compare_scenario_select[0]} and {st.session_state.compare_scenario_select[1]}')
+            df_1 = scenario_df_filter[scenario_df_filter['SCENARIO'] == st.session_state.compare_scenario_select[0]]
+            df_2 = scenario_df_filter[scenario_df_filter['SCENARIO'] == st.session_state.compare_scenario_select[1]]
+            merged_df = pd.merge(
+                df_1,
+                df_2,
+                on=['COURSE', 'PERIOD', 'COMMENCING_STUDY_PERIOD', 'OWNING_FACULTY', 'COURSE_LEVEL_NAME', 'FEE_LIABILITY_GROUP'],
+                suffixes=(' '+st.session_state.compare_scenario_select[0], ' '+st.session_state.compare_scenario_select[1])
+            ).drop(columns=[f'SCENARIO {st.session_state.compare_scenario_select[0]}', f'SCENARIO {st.session_state.compare_scenario_select[1]}'])
+            st.write(merged_df)
 
 
 elif st.session_state.scenario_actual_option == 'Faculty Approval':
