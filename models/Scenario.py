@@ -49,37 +49,35 @@ class Scenario:
 
   def approve(self):
     role = Utils.get_session_role()
-    match role:
-      case 'G1_FACULTY_ARTS':
-          self.confirmed_by_arts = 'Y'
-      case 'G1_FACULTY_MQBS':
-          self.confirmed_by_mqbs = 'Y'
-      case 'G1_FACULTY_SCI':
-          self.confirmed_by_sci = 'Y'
-      case 'G1_FACULTY_FMHHS':
-          self.confirmed_by_fmhhs = 'Y'
-      case 'ACCOUNTADMIN' | 'G1_ADMIN':
-          self.is_final = 'Y'
-      case _:
-          raise f"No role match: {role}"
+    if role == 'G1_FACULTY_ARTS':
+        self.confirmed_by_arts = 'Y'
+    elif role == 'G1_FACULTY_MQBS':
+        self.confirmed_by_mqbs = 'Y'
+    elif role == 'G1_FACULTY_SCI':
+        self.confirmed_by_sci = 'Y'
+    elif role == 'G1_FACULTY_FMHHS':
+        self.confirmed_by_fmhhs = 'Y'
+    elif role in ('ACCOUNTADMIN', 'G1_ADMIN'):
+        self.is_final = 'Y'
+    else:
+        raise f"No role match: {role}"
 
     self.save()
 
   def has_role_approved(self):
     role = Utils.get_session_role()
-    match role:
-      case 'G1_FACULTY_ARTS':
-          return self.confirmed_by_arts == 'Y'
-      case 'G1_FACULTY_MQBS':
-          return self.confirmed_by_mqbs == 'Y'
-      case 'G1_FACULTY_SCI':
-          return self.confirmed_by_sci == 'Y'
-      case 'G1_FACULTY_FMHHS':
-          return self.confirmed_by_fmhhs == 'Y'
-      case 'ACCOUNTADMIN' | 'G1_ADMIN':
-          return self.is_final == 'Y'
-      case _:
-          raise f"No role match: {role}"
+    if role == 'G1_FACULTY_ARTS':
+        return self.confirmed_by_arts == 'Y'
+    elif role == 'G1_FACULTY_MQBS':
+        return self.confirmed_by_mqbs == 'Y'
+    elif role == 'G1_FACULTY_SCI':
+        return self.confirmed_by_sci == 'Y'
+    elif role == 'G1_FACULTY_FMHHS':
+        return self.confirmed_by_fmhhs == 'Y'
+    elif role in ('ACCOUNTADMIN', 'G1_ADMIN'):
+        return self.is_final == 'Y'
+    else:
+        raise f"No role match: {role}"
 
 
   def save(self):

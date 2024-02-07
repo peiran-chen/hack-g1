@@ -740,23 +740,22 @@ elif st.session_state.scenario_actual_option == 'Faculty Approval':
 
     role = Utils.get_session_role()
     st.write(role)
-    match role:
-        case 'G1_FACULTY_ARTS':
-            approve_arts = st.checkbox('Arts', disabled=True, value=(True if scenario.confirmed_by_arts=='Y' else False))
-        case 'G1_FACULTY_MQBS':
-            approve_mqbs = st.checkbox('MQBS', value=True if scenario.confirmed_by_mqbs=='Y' else False)
-        case 'G1_FACULTY_SCI':
-            approve_sci = st.checkbox('Science', disabled=True, value=(True if scenario.confirmed_by_sci=='Y' else False))
-        case 'G1_FACULTY_FMHHS':
-            approve_fmhhs = st.checkbox('FMHHS', disabled=True, value=(True if scenario.confirmed_by_fmhhs=='Y' else False))
-        case 'ACCOUNTADMIN' | 'G1_ADMIN':
-            approve_arts = st.checkbox('Arts', disabled=True, value=(True if scenario.confirmed_by_arts=='Y' else False))
-            approve_mqbs = st.checkbox('MQBS', disabled=True, value=(True if scenario.confirmed_by_mqbs=='Y' else False))
-            approve_sci = st.checkbox('Science', disabled=True, value=(True if scenario.confirmed_by_sci=='Y' else False))
-            approve_fmhhs = st.checkbox('FMHHS', disabled=True, value=(True if scenario.confirmed_by_fmhhs=='Y' else False))
-            approve_admin = st.checkbox('Admin', disabled=True, value=(True if scenario.is_final=='Y' else False))
-        case _:
-            raise f"No role match: {role}"
+    if role == 'G1_FACULTY_ARTS':
+        approve_arts = st.checkbox('Arts', disabled=True, value=(True if scenario.confirmed_by_arts=='Y' else False))
+    elif role == 'G1_FACULTY_MQBS':
+        approve_mqbs = st.checkbox('MQBS', value=True if scenario.confirmed_by_mqbs=='Y' else False)
+    elif role == 'G1_FACULTY_SCI':
+        approve_sci = st.checkbox('Science', disabled=True, value=(True if scenario.confirmed_by_sci=='Y' else False))
+    elif role == 'G1_FACULTY_FMHHS':
+        approve_fmhhs = st.checkbox('FMHHS', disabled=True, value=(True if scenario.confirmed_by_fmhhs=='Y' else False))
+    elif role in ('ACCOUNTADMIN', 'G1_ADMIN'):
+        approve_arts = st.checkbox('Arts', disabled=True, value=(True if scenario.confirmed_by_arts=='Y' else False))
+        approve_mqbs = st.checkbox('MQBS', disabled=True, value=(True if scenario.confirmed_by_mqbs=='Y' else False))
+        approve_sci = st.checkbox('Science', disabled=True, value=(True if scenario.confirmed_by_sci=='Y' else False))
+        approve_fmhhs = st.checkbox('FMHHS', disabled=True, value=(True if scenario.confirmed_by_fmhhs=='Y' else False))
+        approve_admin = st.checkbox('Admin', disabled=True, value=(True if scenario.is_final=='Y' else False))
+    else:
+        raise f"No role match: {role}"
     
     comment = st.text_area('Comment', value=scenario.notes, disabled=scenario.has_role_approved())
 
