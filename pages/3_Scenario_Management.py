@@ -313,7 +313,7 @@ elif st.session_state.scenario_actual_option == 'Scenario':
                             estimate_all_pd = pd.concat([estimate_all_pd, df], sort=False)
                         # st.dataframe(estimate_all_pd)
                         # st.write(estimate_all_pd.shape)
-                        session.write_pandas(estimate_all_pd, 'tmp_estimate', quote_identifiers=False, auto_create_table=True, overwrite=True)
+                        session.write_pandas(estimate_all_pd, 'tmp_estimate', quote_identifiers=False, auto_create_table=True, overwrite=True, create_temp_table=True)
 
                         insert_scenario_sql = \
                             f"""insert into scenario (scenario_name, version_name, notes)
@@ -531,7 +531,7 @@ elif st.session_state.scenario_actual_option == 'Scenario':
                         # st.dataframe(estimate_all_pd)
                         # st.write(estimate_all_pd.shape)
                         session.write_pandas(estimate_all_pd, 'tmp_estimate', quote_identifiers=False,
-                                             auto_create_table=True, overwrite=True)
+                                             auto_create_table=True, overwrite=True, create_temp_table=True)
 
                         insert_scenario_sql = \
                             f"""insert into scenario (scenario_name, version_name, notes)
@@ -714,7 +714,7 @@ elif st.session_state.scenario_actual_option == 'Scenario':
                                 edit_df,
                                 table_name=f'tmp_modify_scenario',
                                 overwrite=True,
-                                create_temp_table=False,
+                                create_temp_table=True,
                                 quote_identifiers=False,
                                 auto_create_table=True,
                                 # table_type='temp'

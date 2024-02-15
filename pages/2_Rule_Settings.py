@@ -104,7 +104,7 @@ if 'rule_option' in st.session_state:
             elif current_role == 'G1_FACULTY_SCI':
                 st.warning("You can create and modify **Scenario Rules** for **Faculty of Science and Engineering**.")
                 course_level_name_df_pd = course_level_name_df.to_pandas()
-                owning_faculty_df_pd = owning_faculty_df.select(
+                owning_faculty_df_pd = owning_faculty_df.filter(
                     col('FACULTY_NAME') == 'Faculty of Science and Engineering'
                 ).to_pandas()
                 fee_liability_group_df_pd = fee_liability_group_df.to_pandas()
@@ -112,7 +112,7 @@ if 'rule_option' in st.session_state:
             elif current_role == 'G1_FACULTY_ARTS':
                 st.warning("You can create and modify **Scenario Rules** for **Faculty of Arts**.")
                 course_level_name_df_pd = course_level_name_df.to_pandas()
-                owning_faculty_df_pd = owning_faculty_df.select(
+                owning_faculty_df_pd = owning_faculty_df.filter(
                     col('FACULTY_NAME') == 'Faculty of Arts'
                 ).to_pandas()
                 fee_liability_group_df_pd = fee_liability_group_df.to_pandas()
@@ -120,7 +120,7 @@ if 'rule_option' in st.session_state:
             elif current_role == 'G1_FACULTY_MQBS':
                 st.warning("You can create and modify **Scenario Rules** for **Macquarie Business School**.")
                 course_level_name_df_pd = course_level_name_df.to_pandas()
-                owning_faculty_df_pd = owning_faculty_df.select(
+                owning_faculty_df_pd = owning_faculty_df.filter(
                     col('FACULTY_NAME') == 'Macquarie Business School'
                 ).to_pandas()
                 fee_liability_group_df_pd = fee_liability_group_df.to_pandas()
@@ -129,7 +129,7 @@ if 'rule_option' in st.session_state:
                 st.warning("You can create and modify **Scenario Rules** for "
                            "**Faculty of Medicine, Health and Human Sciences**.")
                 course_level_name_df_pd = course_level_name_df.to_pandas()
-                owning_faculty_df_pd = owning_faculty_df.select(
+                owning_faculty_df_pd = owning_faculty_df.filter(
                     col('FACULTY_NAME') == 'Faculty of Medicine, Health and Human Sciences'
                 ).to_pandas()
                 fee_liability_group_df_pd = fee_liability_group_df.to_pandas()
